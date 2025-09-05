@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Cronómetro Entrenamiento</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 0;
+      transition: background-color 0.5s ease;
+    }
+
+    h1 {
+      margin-top: 20px;
+    }
+
+    #timer {
+      font-size: 80px;
+      margin: 20px 0;
+    }
+
+    #etapa {
+      font-size: 30px;
+      font-weight: bold;
+    }
+
+    input[type="number"] {
+      width: 60px;
+      padding: 5px;
+      margin: 5px;
+      font-size: 18px;
+      text-align: center;
+    }
+
+    .controls button {
+      padding: 10px 20px;
+      margin: 10px;
+      font-size: 18px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: 2px 2px 8px rgba(0,0,0,0.3); /* para darles profundidad */
+    }
+
+    .start { background-color: #4CAF50; color: white; }
+    .stop { background-color: #f44336; color: white; }
+  </style>
+</head>
+<body>
+  <h1>Entrenamiento</h1>
+
+  <div>
+    ⏱️ Pre: <input type="number" id="tiempoPre" value="3" min="1"> segundos
+    💪 Entreno: <input type="number" id="tiempoEjercicio" value="30" min="1"> segundos
+    🧘 Descanso: <input type="number" id="tiempoDescanso" value="20" min="1"> segundos
+  </div>
+
+  <div id="etapa">Preparate</div>
+  <div id="timer">03</div>
+
+  <div class="controls">
+    <button class="start" onclick="iniciar()">Iniciar</button>
+    <button class="stop" onclick="detener()">Detener</button>
+  </div>
+
+  <script>
+    let intervalId = null;
+    let etapaActual = 0;
+    let segundosRestantes = 0;
+    let etapas = [];
+    let loopActivo = false;
+
+    function beep(duration = 300, frequency = 800, type = "sine") {
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+      oscillator.type = type;
+      oscillator.frequency.value = frequency;
+      oscillator.start();
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration / 1000);
+      oscillator.stop(audioCtx.currentTime + duration / 1000);
+    }
+
+    function prepararEtapas() {
+      const pre = parseInt(document.getElementById("tiempoPre").value);
+      const ejercicio = parseInt(document.getElementById("tiempoEjercicio").value);
+      const descanso = parseInt(document.getElementById("tiempoDescanso").value);
+
+      etapas = [
+        { nombre: "Preparate", duracion: pre, color: "white", sonido: "countdown" },
+        { nombre: "¡Ejercicio!", duracion: ejercicio, color: "#4CAF50", sonido: "countdown" },
+        { nombre: "Descansá", duracion: descanso, color: "#f44336", sonido: "ultimo" }
+      ];
+    }
+
+    function actualizarPantalla() {
+      document.getElementById("etapa").textContent = etapas[etapaActual].nombre;
+      document.getElementById("timer").textContent = String(segundosRestantes).padStart(2, "0");
+      document.body.style.backgroundColor = etapas[etapaActual].color;
+
+      // Sonidos
+      if (segundosRestantes <= 3 && etapas[etapaActual].sonido === "countdown") {
+        if (segundosRestantes === 3 || segundosRestantes === 2) beep(100, 600);
+        if (segundosRestantes === 1) beep(400, 1000);
+      } else if (segundosRestantes === 1 && etapas[etapaActual].sonido === "ultimo") {
+        beep(200, 600);
+      }
+    }
+
+    function siguienteEtapa() {
+      etapaActual = (etapaActual + 1) % etapas.length;
+      segundosRestantes = etapas[etapaActual].duracion;
+      actualizarPantalla();
+    }
+
+    function iniciar() {
+      detener(); // Previene loops dobles
+      prepararEtapas();
+      etapaActual = 0;
+      segundosRestantes = etapas[etapaActual].duracion;
+      loopActivo = true;
+      actualizarPantalla();
+
+      intervalId = setInterval(() => {
+        segundosRestantes--;
+        if (segundosRestantes < 0) {
+          siguienteEtapa();
+        } else {
+          actualizarPantalla();
+        }
+      }, 1000);
+    }
+
+    function detener() {
+      clearInterval(intervalId);
+      intervalId = null;
+      loopActivo = false;
+      etapaActual = 0;
+      prepararEtapas();
+      segundosRestantes = etapas[0].duracion;
+      actualizarPantalla();
+    }
+
+    // Estado inicial
+    prepararEtapas();
+    segundosRestantes = etapas[0].duracion;
+    actualizarPantalla();
+  </script>
+</body>
+  <footer>
+    <br>
+    <br>
+    <a href="https://tuwebmisiones.com">TuWebMisiones.com</a>
+</footer>
+</html>
